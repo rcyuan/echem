@@ -25,11 +25,24 @@ def build_parser_dict():
         local_classes = [cls for name, cls in classes if cls.__module__ == module.__name__]
         if len(local_classes) != 1:
             raise RuntimeError(f"Expected exactly one class in {module.__name__}, found {len(local_classes)}.")
-            break
 
         # save to dict
         parser_dict[module_name] = local_classes[0]  
     return parser_dict
+
+def get_site_ref_sizes(probe_num):
+    # !! assumes v2 flex wafer numbering !!
+    probe_num = int(probe_num)
+    if 1 <= probe_num <= 14 or 25 <= probe_num <= 34 or 55 <= probe_num <= 70:
+        return 'large', 'large'
+    elif 35 <= probe_num <= 54:
+        if probe_num >= 45: 
+            return 'mix', 'small'
+        else:
+            return 'mix', 'large'
+    elif 15 <= probe_num <= 24:
+        return 'small', 'large'
+
 
 # build dictionary of parsers
 parser_dict = build_parser_dict()
@@ -69,6 +82,7 @@ for file in DTA_files:
         "expt_type": filename_split[0],
         "expt_date": filename_split[1],
         "ID": filename_split[2],
+        **dict(zip(["site_size", "ref_size"], get_site_ref_sizes(filename_split[2].split('-')[1][1:]))),
         "E_num": filename_split[3],
         "electrode": filename_split[4],
         "electrolyte": filename_split[5],
