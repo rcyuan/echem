@@ -3,7 +3,7 @@ import inspect
 import os
 from pathlib import Path
 import gamry_parser  
-import pandas
+import pandas as pd
 
 def build_parser_dict():
     # get module files
@@ -44,50 +44,49 @@ def get_site_ref_sizes(probe_num):
         return 'small', 'large'
 
 
-# build dictionary of parsers
-parser_dict = build_parser_dict()
+def parse_files(data_dir):
+    # build dictionary of parsers
+    parser_dict = build_parser_dict()
 
-#specify .dta files to parse
-data_dir = '/Users/rachelyuan/data/gamry' #search within here, including this folder and any subfolders
-DTA_files = []
-for root, _, files in os.walk(data_dir):
-    for file in files:
-        file_path = os.path.join(root, file)
-        if file.endswith('.DTA'):
-            DTA_files.append(file_path)
+    #specify .dta files to parse
+    DTA_files = []
+    for root, _, files in os.walk(data_dir):
+        for file in files:
+            file_path = os.path.join(root, file)
+            if file.endswith('.DTA'):
+                DTA_files.append(file_path)
 
-# loop over files; parse metadata & data from each
-metadata = []
-data = {}
-for file in DTA_files:
-    # load file with the appropriate parser by matching to entry parser_dict
-    filename = Path(file).stem
-    filename_split = filename.split("_")
-    expt_tag = filename_split[0].lower() #first item should always be exp't tag ID
-    if expt_tag in parser_dict:
-        parser_cls = parser_dict[expt_tag]
-        parser = parser_cls() 
-        # print(f"Using parser {parser_cls.__name__} for file: {filename}")
-        parser.load(file) #load/parse file
-    else:
-        print(f"No parser found for file: {filename}")
-        continue
+    # loop over files; parse metadata & data from each
+    metadata = []
+    data = {}
+    for file in DTA_files:
+        # load file with the appropriate parser by matching to entry parser_dict
+        filename = Path(file).stem
+        filename_split = filename.split("_")
+        expt_tag = filename_split[0].lower() #first item should always be exp't tag ID
+        if expt_tag in parser_dict:
+            parser_cls = parser_dict[expt_tag]
+            parser = parser_cls() 
+            # print(f"Using parser {parser_cls.__name__} for file: {filename}")
+            parser.load(file) #load/parse file
+        else:
+            print(f"No parser found for file: {filename}")
+            continue
 
-    # store data
-    data[filename] = parser.curves
-    
-    # store metadata
-    record = {
-        "filename": filename,
-        "expt_type": filename_split[0],
-        "expt_date": filename_split[1],
-        "ID": filename_split[2],
-        **dict(zip(["site_size", "ref_size"], get_site_ref_sizes(filename_split[2].split('-')[1][1:]))),
-        "E_num": filename_split[3],
-        "electrode": filename_split[4],
-        "electrolyte": filename_split[5],
-        "repeat": filename_split[6],
-    }
-    metadata.append(record)
-
-metadata = pandas.DataFrame(metadata)
+        # store data
+        data[filename] = parser.curves
+        
+        # store metadata
+        record = {
+            "filename": filename,
+            "expt_type": filename_split[0],
+            "expt_date": filename_split[1],
+            "ID": filename_split[2],
+            **dict(zip(["site_size", "ref_size"], get_site_ref_sizes(filename_split[2].split('-')[1][1:]))),
+            "E_num": filename_split[3],
+            "electrode": filename_split[4],
+            "electrolyte": filename_split[5],
+            "repeat": filename_split[6],
+        }
+        metadata.append(record)
+    return pd.DataFrame(metadata), data
