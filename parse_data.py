@@ -49,6 +49,7 @@ def parse_files(data_dir):
     parser_dict = build_parser_dict()
 
     #specify .dta files to parse
+    data_dir = '/Users/rachelyuan/data/gamry' #search within here, including this folder and any subfolders
     DTA_files = []
     for root, _, files in os.walk(data_dir):
         for file in files:
@@ -57,13 +58,16 @@ def parse_files(data_dir):
                 DTA_files.append(file_path)
 
     # loop over files; parse metadata & data from each
-    metadata = []
+    eis_meta = []
+    cv_meta = []
+    chrono_meta = []
     data = {}
     for file in DTA_files:
         # load file with the appropriate parser by matching to entry parser_dict
         filename = Path(file).stem
-        filename_split = filename.split("_")
-        expt_tag = filename_split[0].lower() #first item should always be exp't tag ID
+        filename_split = filename.split('_')
+        expt_tag = filename_split[0] #first item should always be exp't tag ID
+        
         if expt_tag in parser_dict:
             parser_cls = parser_dict[expt_tag]
             parser = parser_cls() 
@@ -73,20 +77,34 @@ def parse_files(data_dir):
             print(f"No parser found for file: {filename}")
             continue
 
-        # store data
-        data[filename] = parser.curves
+        data[filename] = [parser.curve(n) for n in parser.curve_indices] #list of dataframes for each curve
         
         # store metadata
         record = {
-            "filename": filename,
-            "expt_type": filename_split[0],
-            "expt_date": filename_split[1],
-            "ID": filename_split[2],
-            **dict(zip(["site_size", "ref_size"], get_site_ref_sizes(filename_split[2].split('-')[1][1:]))),
-            "E_num": filename_split[3],
-            "electrode": filename_split[4],
-            "electrolyte": filename_split[5],
-            "repeat": filename_split[6],
+            'filename': filename,
+            'expt_type': filename_split[0],
+            'expt_date': filename_split[1],
+            'ID': filename_split[2],
+            **dict(zip(['site_size', 'ref_size'], get_site_ref_sizes(filename_split[2].split('-')[1][1:]))),
+            'E_num': filename_split[3],
+            'electrode': filename_split[4],
+            'electrolyte': filename_split[5],
+            'repeat': filename_split[6],
         }
-        metadata.append(record)
-    return pd.DataFrame(metadata), data
+        
+        match expt_tag:
+            case 'EISPOT' | 'GALVEIS':
+                eis_meta.append(record)
+            case 'CV': 
+                record['scan_rate'] = parser.scan_rate
+                record['v_range'] = parser.v_range
+                record['num_curves'] = parser.curve_count
+                cv_meta.append(record)
+            case 'CHRONOA' | 'CHRONOP':
+                record['sample_time'] = parser.sample_time
+                record['sample_count'] = parser.sample_count
+                chrono_meta.append(record)
+            case _:
+                print(f"Skipping {expt_tag} file ({filename})") #skip non-EIS/CV/CHRONOA/CHRONOP experiments (for now?)
+    
+    return data, pd.DataFrame(eis_meta), pd.DataFrame(cv_meta), pd.DataFrame(chrono_meta)

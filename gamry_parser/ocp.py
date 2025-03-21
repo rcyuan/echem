@@ -7,7 +7,7 @@ import re
 class OpenCircuitPotential(parser.GamryParser):
     """Load an Open Circuit Potential (CORPOT) experiment generated in Gamry EXPLAIN format."""
 
-    def curve(self):
+    def curve(self, curve: int = 0):
         """retrieve OCP data
 
         Args:
@@ -21,7 +21,7 @@ class OpenCircuitPotential(parser.GamryParser):
         """
 
         assert self.loaded, "DTA file not loaded. Run OpenCircuitPotential.load()"
-        df = self._curves[0]
+        df = self._curves[curve]
         return df[["T", "Vf"]]
 
     def load(self, filename: str = None, to_timestamp: bool = None):
