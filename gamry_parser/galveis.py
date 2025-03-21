@@ -1,11 +1,11 @@
 import gamry_parser as parser
 
 
-class PotentiostaticImpedance(parser.GamryParser):
-    """Load a Potentiostatic EIS experiment generated in Gamry EXPLAIN format."""
+class GalvanostaticImpedance(parser.GamryParser):
+    """Load a Galvanostatic EIS experiment generated in Gamry EXPLAIN format."""
 
     def curve(self, curve: int = 0):
-        """retrieve potentiostatic eis-relevant data
+        """retrieve galvanostatic eis-relevant data
 
         Args:
             curve (int, optional): curve number to return. Defaults to 1.
