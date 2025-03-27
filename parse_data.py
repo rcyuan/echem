@@ -30,18 +30,36 @@ def build_parser_dict():
         parser_dict[module_name] = local_classes[0]  
     return parser_dict
 
-def get_site_ref_sizes(probe_num):
+def get_site_size(probe_num, E_num):
     # !! assumes v2 flex wafer numbering !!
+    
+    # figure out site design based on probe_num (e.g. all large sites, all small sites, or mixed)
     probe_num = int(probe_num)
     if 1 <= probe_num <= 14 or 25 <= probe_num <= 34 or 55 <= probe_num <= 70:
-        return 'large', 'large'
+        sites = 'large'
+        refs = 'large'
     elif 35 <= probe_num <= 54:
         if probe_num >= 45: 
-            return 'mix', 'small'
+            sites = 'mix'
+            refs = 'small'
         else:
-            return 'mix', 'large'
+            sites = 'mix'
+            refs = 'large'
     elif 15 <= probe_num <= 24:
-        return 'small', 'large'
+        sites = 'small'
+        refs = 'large'
+
+    # determine if this site is large or small (or N/A, e.g. if all shorted)
+    if E_num.isdigit():
+        if (sites == 'large') or ((sites == 'mix') and (int(E_num) % 2 == 0)):
+            site_size = 'large'
+        elif (sites == 'small') or ((sites == 'mix') and (int(E_num) % 2 != 0)):
+            site_size = 'small'
+    elif (E_num == 'tip') | (E_num == 'shank'):
+        site_size = refs
+    else:
+        site_size = 'N/A'
+    return site_size
 
 
 def parse_files(data_dir):
@@ -79,14 +97,16 @@ def parse_files(data_dir):
 
         data[filename] = [parser.curve(n) for n in parser.curve_indices] #list of dataframes for each curve
         
+        probe_num = filename_split[2].split('-')[1][1:]
+        E_num = filename_split[3]
         # store metadata
         record = {
             'filename': filename,
             'expt_type': filename_split[0],
             'expt_date': filename_split[1],
             'ID': filename_split[2],
-            **dict(zip(['site_size', 'ref_size'], get_site_ref_sizes(filename_split[2].split('-')[1][1:]))),
-            'E_num': filename_split[3],
+            'E_num': E_num,
+            'site_size': get_site_size(probe_num, E_num),
             'electrode': filename_split[4],
             'electrolyte': filename_split[5],
             'repeat': filename_split[6],
@@ -107,4 +127,4 @@ def parse_files(data_dir):
             case _:
                 print(f"Skipping {expt_tag} file ({filename})") #skip non-EIS/CV/CHRONOA/CHRONOP experiments (for now?)
     
-    return data, pd.DataFrame(eis_meta), pd.DataFrame(cv_meta), pd.DataFrame(chrono_meta)
+    return data, eis_meta, cv_meta, chrono_meta
