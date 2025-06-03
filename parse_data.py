@@ -67,7 +67,6 @@ def parse_files(data_dir):
     parser_dict = build_parser_dict()
 
     #specify .dta files to parse
-    data_dir = '/Users/rachelyuan/data/gamry' #search within here, including this folder and any subfolders
     DTA_files = []
     for root, _, files in os.walk(data_dir):
         for file in files:
