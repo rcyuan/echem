@@ -1,3 +1,6 @@
 __pycache__/
 *.pyc
 .venv/
+*.dta
+.DS_Store?
+.DS_Store
