@@ -4,3 +4,4 @@ __pycache__/
 *.dta
 .DS_Store?
 .DS_Store
+*.csv
