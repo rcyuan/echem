@@ -3,5 +3,5 @@ __pycache__/
 .venv/
 *.dta
 .DS_Store?
-.DS_StoreS
+.DS_Store
 *.csv
