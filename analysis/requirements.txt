@@ -1,0 +1,5 @@
+pandas==1.3.5
+plotly
+PyYAML==6.0.1
+numpy==1.21.6
+# gamry_parser must be installed separately (third-party Gamry library)

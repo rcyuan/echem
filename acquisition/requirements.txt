@@ -1,0 +1,14 @@
+# IMPORTANT: acquisition scripts require the 32-bit Python 3.7 installed by Gamry Framework.
+# Use that Python executable (C:\Program Files (x86)\Gamry Instruments\Python37-32\python.exe)
+# when creating your virtual environment, not a system Python.
+# See README for full setup instructions.
+
+# IMPORTANT: install 'pyserial', not 'serial' — they are different packages.
+# pyserial provides the 'serial' import; the unrelated 'serial' package will not work.
+pyserial==3.5
+
+PySide2==5.15.2.1
+numpy==1.21.6
+
+# toolkitpy is installed via Gamry Framework, not pip.
+# It is available at: C:\Program Files (x86)\Gamry Instruments\Python37-32\Lib\site-packages
