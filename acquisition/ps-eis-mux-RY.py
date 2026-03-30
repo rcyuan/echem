@@ -142,18 +142,23 @@ def main():
 
 	og = ap.add_argument_group('PS EIS Parameters')
 	og.add_argument('--eis-freq-start', type=float, default=100.0e3, help='start frequency')
-	og.add_argument('--eis-freq-stop', type=float, default=10.0, help='stop frequency')
-	og.add_argument('--eis-points-per-decade', type=int, default=10, help='points per frequency decade')
+	og.add_argument('--eis-freq-stop', type=float, default=1.0, help='stop frequency')
+	og.add_argument('--eis-points-per-decade', type=int, default=5, help='points per frequency decade')
 	og.add_argument('--eis-dc-voltage', type=float, default=0.0, help='DC bias voltage')
 	og.add_argument('--eis-estimated-z', type=float, default=10.0e3, help='Estimated impedance magnitude')
 	
 	og = ap.add_argument_group('Channels')
-	og.add_argument('--channels', type=int, nargs='+', metavar='CH', default=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17], help='channels to sweep')
+	og.add_argument('--channels', type=int, nargs='+', metavar='CH', default=[0,1,2,3,4,5,6,7,
+																		   8,9,10,11,12,13,14,15,
+																		   16,17,18,19,20,21,22,23,
+																		   24,25,26,27,28,29,30,31], help='channels to sweep')
+	# og.add_argument('--channels', type=int, nargs='+', metavar='CH', default=[0,1,2,3,4,5,6,7,
+	# 																	   8,9,10,11,12,13,14,15,16,17], help='channels to sweep')
 	og.add_argument('--channel-switch-delay', type=float, default=0.1, help='Time to wait after channel switch before sweep')
 	
 	og = ap.add_argument_group('Output Parameters')
 	og.add_argument('--file-path', type=str, default='data', help='Output file path')
-	og.add_argument('--file-name-format', type=str, default='ps-eis-{}-{:02d}.csv', help='Output file name format')
+	og.add_argument('--file-name-format', type=str, default='{}_{:02d}.csv', help='Output file name format')
 	og.add_argument('--dataset-name', type=str, default='test', help='Output file prefix')
 	og.add_argument('--no-dataset-directory', action='store_true', help='enable communication debugging')
 	args = ap.parse_args()
