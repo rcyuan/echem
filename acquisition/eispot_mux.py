@@ -40,19 +40,19 @@ def	initialize_pstat(pstat):
 def	potentiostatic_eis(pstat, parameter_list):
 	#Parameters
 	#------------------------------------------------------------------
-	initial_freq = parameter_list.get("initial_freq", 100000)	 #Hz
-	final_freq = parameter_list.get("final_freq", 1)			#Hz
-	ac_voltage = parameter_list.get("ac_voltage", .03)			#V
-	dc_voltage = parameter_list.get("dc_voltage", 0.0)			#V
-	estimated_z	= parameter_list.get("estimated_z",	10000)		#ohm
-	points_per_decade =	parameter_list.get("points_per_decade",	5)	 # none
+	initial_freq = parameter_list["initial_freq"]		#Hz
+	final_freq = parameter_list["final_freq"]			#Hz
+	ac_voltage = parameter_list["ac_voltage"]			#V
+	dc_voltage = parameter_list["dc_voltage"]			#V
+	estimated_z	= parameter_list["estimated_z"]			#ohm
+	points_per_decade =	parameter_list["points_per_decade"]	# none
 
 	# internal state - pre 1st measurement
 	gain = 1.0
 	inoise = 0.0
 	vnoise = 0.0
 	ienoise	= 0.0
- 
+
 	#-----------------------------------------------------------
 	final_freq = abs(final_freq)
 	initial_freq = abs(initial_freq)
@@ -105,7 +105,6 @@ def	potentiostatic_eis(pstat, parameter_list):
 	
 	print('Acquiring {} points'.format(max_points),	end='')
 
-	added =	True
 	current_points = 0
 
 	while current_points < max_points:
@@ -118,15 +117,25 @@ def	potentiostatic_eis(pstat, parameter_list):
 		else:
 			print('.', end='', flush=True)
 			zcurve.add_point(readz)
-			data = zcurve.acq_data()
-			nextpoint =	zcurve.point
-			lastpoint =	nextpoint-1
 		current_points +=1
 
 	print()
 	pstat.set_cell(False)
 
 	return zcurve
+
+
+def parse_channel(value):
+	"""Parse a channel token: int, range (e.g. '1-8'), or comma-separated combo (e.g. '1-8,10,12')"""
+	channels = []
+	for part in value.split(','):
+		part = part.strip()
+		if '-' in part:
+			start, end = part.split('-', 1)
+			channels.extend(range(int(start), int(end) + 1))
+		else:
+			channels.append(int(part))
+	return channels
 
 
 def main():
@@ -141,27 +150,29 @@ def main():
 	og.add_argument('--mux-write-timeout', type=float, default=1.0, help='COM port write time-out seconds')
 
 	og = ap.add_argument_group('PS EIS Parameters')
-	og.add_argument('--eis-freq-start', type=float, default=100.0e3, help='start frequency')
-	og.add_argument('--eis-freq-stop', type=float, default=1.0, help='stop frequency')
+	og.add_argument('--eis-freq-start', type=float, default=100.0e3, help='start frequency (Hz)')
+	og.add_argument('--eis-freq-stop', type=float, default=1.0, help='stop frequency (Hz)')
 	og.add_argument('--eis-points-per-decade', type=int, default=5, help='points per frequency decade')
-	og.add_argument('--eis-dc-voltage', type=float, default=0.0, help='DC bias voltage')
-	og.add_argument('--eis-estimated-z', type=float, default=10.0e3, help='Estimated impedance magnitude')
-	
+	og.add_argument('--eis-ac-voltage', type=float, default=0.03, help='AC voltage (V)')
+	og.add_argument('--eis-dc-voltage', type=float, default=0.0, help='DC bias voltage (V)')
+	og.add_argument('--eis-estimated-z', type=float, default=10.0e3, help='estimated impedance magnitude (ohm)')
+
 	og = ap.add_argument_group('Channels')
-	og.add_argument('--channels', type=int, nargs='+', metavar='CH', default=[0,1,2,3,4,5,6,7,
-																		   8,9,10,11,12,13,14,15,
-																		   16,17,18,19,20,21,22,23,
-																		   24,25,26,27,28,29,30,31], help='channels to sweep')
-	# og.add_argument('--channels', type=int, nargs='+', metavar='CH', default=[0,1,2,3,4,5,6,7,
-	# 																	   8,9,10,11,12,13,14,15,16,17], help='channels to sweep')
-	og.add_argument('--channel-switch-delay', type=float, default=0.1, help='Time to wait after channel switch before sweep')
+	og.add_argument('--channels', type=parse_channel, nargs='+', metavar='CH', default=None,
+					help='channels to sweep; accepts integers, ranges (e.g. 0-17), or comma-separated combos (e.g. 0-7,10,12); defaults to all 32 channels (0-31)')
+	og.add_argument('--channel-switch-delay', type=float, default=0.1, help='time to wait after channel switch before sweep (s)')
 	
 	og = ap.add_argument_group('Output Parameters')
 	og.add_argument('--file-path', type=str, default='data', help='Output file path')
 	og.add_argument('--file-name-format', type=str, default='{}_{:02d}.csv', help='Output file name format')
 	og.add_argument('--dataset-name', type=str, default='test', help='Output file prefix')
-	og.add_argument('--no-dataset-directory', action='store_true', help='enable communication debugging')
+	og.add_argument('--no-dataset-directory', action='store_true', help='write output files directly to --file-path without creating a dataset subdirectory')
 	args = ap.parse_args()
+
+	if args.channels is None:
+		args.channels = list(range(32))
+	else:
+		args.channels = [ch for group in args.channels for ch in group]
 
 	###### MUX SETUP ######
 	mux = mx.Mux(args.mux_port, args.mux_debug, args.mux_read_timeout, args.mux_write_timeout)
@@ -169,7 +180,7 @@ def main():
 
 	###### POTENTIOSTAT SET-UP #########
 	print('Initialising the potentiostat...')
-	tkp.toolkitpy_init("ps-eis-mux-RY.py") #initialize toolkitpy
+	tkp.toolkitpy_init("eispot_mux.py") #initialize toolkitpy
 	pstat = tkp.Pstat("PSTAT") #create pstat object in order to send commands to potentiostat. this method grabs the fisrt pstat object.
 
 
@@ -177,9 +188,10 @@ def main():
 	# EIS Parameters
 	###
 	parameter_list = { }
-	parameter_list['initial_freq']= args.eis_freq_start
+	parameter_list['initial_freq'] = args.eis_freq_start
 	parameter_list['final_freq'] = args.eis_freq_stop
 	parameter_list['points_per_decade'] = args.eis_points_per_decade
+	parameter_list['ac_voltage'] = args.eis_ac_voltage
 	parameter_list['estimated_z'] = args.eis_estimated_z
 	parameter_list['dc_voltage'] = args.eis_dc_voltage
 	

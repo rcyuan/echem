@@ -25,7 +25,7 @@ pip install -r analysis/requirements.txt     # analysis / visualization
 
 **Data acquisition (requires Gamry hardware + multiplexer):**
 ```bash
-python acquisition/ps-eis-mux-RY.py --channels 0-7 --eis-freq-start 100000 --eis-freq-stop 1 --file-path data/experiment_name
+python acquisition/eispot_mux.py --channels 0-7 --eis-freq-start 100000 --eis-freq-stop 1 --file-path data/experiment_name
 ```
 
 **Multiplexer control:**
@@ -51,7 +51,7 @@ plot_eis_data(directory="data/...", config="style.yaml")  # YAML-styled
 ## Architecture
 
 ```
-acquisition/ps-eis-mux-RY.py   # Main acquisition: Gamry toolkitpy + mux.py → CSV output
+acquisition/eispot_mux.py       # Main acquisition: Gamry toolkitpy + mux.py → CSV output
 acquisition/mux.py              # RS-232 multiplexer control (up to 32 channels)
 acquisition/main.py             # PySide2 GUI stub (not fully integrated)
 
