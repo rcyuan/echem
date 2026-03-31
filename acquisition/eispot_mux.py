@@ -1,12 +1,15 @@
 import sys
-sys.path.append(r"C:\Program Files (x86)\Gamry Instruments\Python37-32\Lib\site-packages")
 import argparse
-import mux as mx
-import toolkitpy as tkp
-import numpy as np
-import time
+import datetime
+import json
 import math
 import os
+import time
+
+import numpy as np
+sys.path.append(r"C:\Program Files (x86)\Gamry Instruments\Python37-32\Lib\site-packages")
+import mux as mx
+import toolkitpy as tkp
 
 
 def	initialize_pstat(pstat):
@@ -169,10 +172,49 @@ def main():
 	og.add_argument('--no-dataset-directory', action='store_true', help='write output files directly to --file-path without creating a dataset subdirectory')
 	args = ap.parse_args()
 
+	###
+	# Resolve and validate channels
+	###
 	if args.channels is None:
 		args.channels = list(range(32))
 	else:
 		args.channels = [ch for group in args.channels for ch in group]
+	if not all(0 <= ch <= 31 for ch in args.channels):
+		print('Error: all channels must be in range 0-31.')
+		sys.exit(1)
+
+	###
+	# Print settings summary
+	###
+	print('Dataset:   {}'.format(args.dataset_name))
+	print('Channels:  {}'.format(args.channels))
+	print('Frequency: {} - {} Hz, {} pts/decade'.format(
+		int(args.eis_freq_start), int(args.eis_freq_stop), args.eis_points_per_decade))
+	print('AC voltage: {} V'.format(args.eis_ac_voltage))
+
+	###
+	# Output Location
+	###
+	dir_name = args.file_path
+	if not args.no_dataset_directory:
+		dir_name = os.path.join(args.file_path, args.dataset_name)
+	os.makedirs(dir_name, exist_ok=True)
+	print('Output directory: {}'.format(dir_name))
+
+	###
+	# Check for file conflicts before connecting hardware
+	###
+	existing = [
+		os.path.join(dir_name, args.file_name_format.format(args.dataset_name, ch))
+		for ch in args.channels
+		if os.path.exists(os.path.join(dir_name, args.file_name_format.format(args.dataset_name, ch)))
+	]
+	if existing:
+		print('Error: the following output files already exist:')
+		for f in existing:
+			print('  {}'.format(f))
+		print('Use a different --dataset-name or --file-path to avoid overwriting.')
+		sys.exit(1)
 
 	###### MUX SETUP ######
 	mux = mx.Mux(args.mux_port, args.mux_debug, args.mux_read_timeout, args.mux_write_timeout)
@@ -183,54 +225,59 @@ def main():
 	tkp.toolkitpy_init("eispot_mux.py") #initialize toolkitpy
 	pstat = tkp.Pstat("PSTAT") #create pstat object in order to send commands to potentiostat. this method grabs the fisrt pstat object.
 
-
 	###
 	# EIS Parameters
 	###
-	parameter_list = { }
+	parameter_list = {}
 	parameter_list['initial_freq'] = args.eis_freq_start
 	parameter_list['final_freq'] = args.eis_freq_stop
 	parameter_list['points_per_decade'] = args.eis_points_per_decade
 	parameter_list['ac_voltage'] = args.eis_ac_voltage
 	parameter_list['estimated_z'] = args.eis_estimated_z
 	parameter_list['dc_voltage'] = args.eis_dc_voltage
-	
+
 	###
-	# Output Location
+	# Save settings
 	###
-	dir_name = args.file_path
-	if not args.no_dataset_directory:
-		dir_name = os.path.join(args.file_path, args.dataset_name)
-	os.makedirs(dir_name, exist_ok=True)
-	print('Output directory: {}'.format(dir_name))
-	
+	settings = {
+		'timestamp': datetime.datetime.now().isoformat(),
+		'dataset_name': args.dataset_name,
+		'channels': args.channels,
+		**parameter_list
+	}
+	settings_file = os.path.join(dir_name, '{}_settings.json'.format(args.dataset_name))
+	with open(settings_file, 'w') as f:
+		json.dump(settings, f, indent=2)
+	print('Settings saved to: {}'.format(settings_file))
+
 	###
 	# Sweeps
 	###
-	for ch in args.channels:
-		print('Sweeping channel: {}'.format(ch))
-		
-		# select channel
-		mux.set(ch)
-		time.sleep(args.channel_switch_delay)
+	try:
+		for ch in args.channels:
+			print('Sweeping channel: {}'.format(ch))
 
-		# perform sweep
-		zcurve = potentiostatic_eis(pstat, parameter_list)
-		file_name = os.path.join(dir_name, args.file_name_format.format(args.dataset_name, ch))
-		print('Writing file: {}'.format(file_name))
-		np.savetxt(file_name, zcurve.acq_data(), delimiter = ',', header = 'Point, Freq(Hz), Zreal (ohm), Zimag (ohm), IE Range')
-		
-		# deselect channel
-		mux.reset(ch)
-	
+			# select channel
+			mux.set(ch)
+			time.sleep(args.channel_switch_delay)
+
+			# perform sweep
+			zcurve = potentiostatic_eis(pstat, parameter_list)
+			file_name = os.path.join(dir_name, args.file_name_format.format(args.dataset_name, ch))
+			print('Writing file: {}'.format(file_name))
+			np.savetxt(file_name, zcurve.acq_data(), delimiter=',', header='Point, Freq(Hz), Zreal (ohm), Zimag (ohm), IE Range')
+
+			# deselect channel
+			mux.reset(ch)
+
 	###
 	# Clean Up
 	###
-	del pstat
-	tkp.toolkitpy_close()
-
-	mux.none()
-	mux.close()
+	finally:
+		del pstat
+		tkp.toolkitpy_close()
+		mux.none()
+		mux.close()
 
 if __name__ == "__main__":
 	main()
