@@ -146,9 +146,9 @@ class EISViewer:
             yaxis=dict(
                 title="Impedance Magnitude (Ω)",
                 type="log",
-                # showgrid=True,
-                # gridwidth=1,
-                # gridcolor='lightgray',
+                showgrid=True,
+                gridwidth=1,
+                gridcolor='lightgray',
                 showline=True,
                 linewidth=2,
                 linecolor='black',
@@ -279,7 +279,7 @@ def main():
     # fig = viewer.plot_directory()
 
     # Option 4: Programmatic directory (uncomment to use)
-    fig = viewer.plot_directory("/Users/rachelyuan/analysis/echem/eis_analysis/data/plot")
+    fig = viewer.plot_directory("C:/Users/rachel.yuan/src/echem/data/plot")
 
 if __name__ == "__main__":
     main()

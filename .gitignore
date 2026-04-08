@@ -7,3 +7,6 @@ __pycache__/
 *.csv
 *.xml
 *.rhs
+.claude/
+data/
+CLAUDE.md
