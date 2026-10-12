@@ -146,6 +146,7 @@ class EISViewer:
             yaxis=dict(
                 title="Impedance Magnitude (Ω)",
                 type="log",
+                # range=[3, np.log10(30e6)],
                 showgrid=True,
                 gridwidth=1,
                 gridcolor='lightgray',
@@ -163,8 +164,8 @@ class EISViewer:
                     gridwidth=0.5
                 )
             ),
-            # width=1500,   # Your preferred width
-            # height=1000,   # Your preferred height
+            width=1300,   # Your preferred width
+            height=940,   # Your preferred height
             autosize=True,
             showlegend=True,
             legend=dict(
@@ -173,7 +174,7 @@ class EISViewer:
                 xanchor='left',
                 yanchor='top'
             ),
-            margin=dict(r=200),  # Extra space for legend
+            margin=dict(r=100),  # Extra space for legend
             plot_bgcolor='white'
         )
         
