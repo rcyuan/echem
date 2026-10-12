@@ -42,7 +42,7 @@ def	initialize_pstat(pstat):
 
 def	potentiostatic_eis(pstat, parameter_list):
 	#Parameters
-	#------------------------------------------------------------------
+	#---------------------------------------0---------------------------
 	initial_freq = parameter_list["initial_freq"]		#Hz
 	final_freq = parameter_list["final_freq"]			#Hz
 	ac_voltage = parameter_list["ac_voltage"]			#V
@@ -179,9 +179,6 @@ def main():
 		args.channels = list(range(32))
 	else:
 		args.channels = [ch for group in args.channels for ch in group]
-	if not all(0 <= ch <= 31 for ch in args.channels):
-		print('Error: all channels must be in range 0-31.')
-		sys.exit(1)
 
 	###
 	# Print settings summary
